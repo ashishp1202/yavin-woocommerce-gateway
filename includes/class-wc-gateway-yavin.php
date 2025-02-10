@@ -58,24 +58,32 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 		$order = wc_get_order($order_id);
 
 		// Call Yavin API to generate the payment link
-		$response = $this->call_yavin_api($order);
-
-		if (isset($response['status']) && $response['status'] == 'ok') {
-			// Payment link generated successfully
+		$api_result = $this->call_yavin_api($order);
+		$status_code = $api_result['status_code'];
+		$response = $api_result['response'];
+		if ($status_code === 201) {
 			$payment_link = $response['payment_link'];
-			wp_redirect($payment_link);
-			exit();
-			return array(
-				'result'   => 'success',
-				'redirect' => $payment_link, // Redirect to Yavin's payment page
-			);
+			if (!empty($payment_link)) {
+				return array(
+					'result'   => 'success',
+					'redirect' => $payment_link,
+				);
+			}
 		} else {
-			// Payment failed
-			wc_add_notice(__('Payment failed. Please try again.', 'yavin-woocommerce-gateway'), 'error');
-			return array(
-				'result'   => 'failure',
-				'redirect' => '',
-			);
+			if ($response['errors']['cart_id'] && ($response['errors']['cart_id'][0] === 'This cart_id already exists')) {
+				return array(
+					'result'   => 'success',
+					'redirect' => $response['errors']['cart_id'][1],
+				);;
+				exit();
+			} else {
+				// Payment failed
+				wc_add_notice(__('Payment failed. Please try again.', 'yavin-woocommerce-gateway'), 'error');
+				return array(
+					'result'   => 'failure',
+					'redirect' => '',
+				);
+			}
 		}
 	}
 
@@ -86,7 +94,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 		$api_key = '8H3pMUetTnAIiqRtxxRZonAsSYdm1lavQXjFyAHEipbI516AP0'; // Replace with your actual Yavin API key
 		$data = array(
 			'cart_id' => 'my_custom_cart_id_' . $order->get_id(),
-			'amount' => $order->get_total(), // Convert to cents
+			'amount' => intval($order->get_total()),
 			'return_url_success' => 'https://stg-yavinshop-testshop.kinsta.cloud/checkout',
 			'return_url_cancelled' => 'https://stg-yavinshop-testshop.kinsta.cloud/checkout',
 			'order_number' => $order->get_order_number(),
@@ -102,12 +110,25 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 				'Yavin-Secret' => $api_key,
 			),
 		));
-		echo "<pre>";
-		print_r($order->get_total());
-		echo "<pre>";
-		print_r($response);
-		exit();
 
-		return json_decode(wp_remote_retrieve_body($response), true);
+		// Get HTTP status code
+		$status_code = wp_remote_retrieve_response_code($response);
+
+		// Get the response body (the actual content returned by the API)
+		$response_body = wp_remote_retrieve_body($response);
+
+
+		// Decode the response body (if it's a JSON response)
+		$decoded_response = json_decode($response_body, true);
+		/* echo "<pre>";
+		print_r($decoded_response);
+		echo "<pre>";
+		print_r($status_code);
+		exit(); */
+		// Return the decoded response along with the status code
+		return array(
+			'status_code' => $status_code,
+			'response' => $decoded_response
+		);
 	}
 }
