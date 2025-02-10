@@ -13,12 +13,12 @@ if (! defined('ABSPATH')) {
 }
 
 // Check if WooCommerce is active
-function is_woocommerce_active()
+function yavin_is_woocommerce_active()
 {
 	return class_exists('WooCommerce');
 }
 
-if (is_woocommerce_active()) {
+if (yavin_is_woocommerce_active()) {
 	add_action('plugins_loaded', 'yavin_woocommerce_gateway_init', 11);
 
 	function yavin_woocommerce_gateway_init()

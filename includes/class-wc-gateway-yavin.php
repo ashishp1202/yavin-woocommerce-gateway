@@ -54,6 +54,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 	// Process the payment (call the Yavin API here)
 	public function process_payment($order_id)
 	{
+
 		$order = wc_get_order($order_id);
 
 		// Call Yavin API to generate the payment link
@@ -62,6 +63,8 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 		if (isset($response['status']) && $response['status'] == 'ok') {
 			// Payment link generated successfully
 			$payment_link = $response['payment_link'];
+			wp_redirect($payment_link);
+			exit();
 			return array(
 				'result'   => 'success',
 				'redirect' => $payment_link, // Redirect to Yavin's payment page
@@ -79,13 +82,13 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 	// Call Yavin API (replace with actual implementation)
 	private function call_yavin_api($order)
 	{
-		$api_url = 'https://api.yavin.com/api/v5/ecommerce/generate_link/';
-		$api_key = 'YAVIN_API_KEY'; // Replace with your actual Yavin API key
+		$api_url = 'https://api.sandbox.yavin.com/api/v5/ecommerce/generate_link/';
+		$api_key = '8H3pMUetTnAIiqRtxxRZonAsSYdm1lavQXjFyAHEipbI516AP0'; // Replace with your actual Yavin API key
 		$data = array(
 			'cart_id' => 'my_custom_cart_id_' . $order->get_id(),
-			'amount' => $order->get_total() * 100, // Convert to cents
-			'return_url_success' => 'https://yourdomain.com/ecommerce/success',
-			'return_url_cancelled' => 'https://yourdomain.com/ecommerce/cancelled',
+			'amount' => $order->get_total(), // Convert to cents
+			'return_url_success' => 'https://stg-yavinshop-testshop.kinsta.cloud/checkout',
+			'return_url_cancelled' => 'https://stg-yavinshop-testshop.kinsta.cloud/checkout',
 			'order_number' => $order->get_order_number(),
 			'currency' => get_woocommerce_currency(),
 		);
@@ -99,6 +102,11 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 				'Yavin-Secret' => $api_key,
 			),
 		));
+		echo "<pre>";
+		print_r($order->get_total());
+		echo "<pre>";
+		print_r($response);
+		exit();
 
 		return json_decode(wp_remote_retrieve_body($response), true);
 	}
