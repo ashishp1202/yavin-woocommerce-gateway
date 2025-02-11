@@ -36,6 +36,53 @@ if (yavin_is_woocommerce_active()) {
 			return $gateways;
 		}
 	}
+
+	// Register the custom endpoint
+	add_action('init', 'yavin_payment_callback');
+
+	function yavin_payment_callback()
+	{
+		if (isset($_GET['cartId']) && isset($_GET['status'])) {
+			$orderID = sanitize_text_field($_GET['cartId']);
+			$status  = sanitize_text_field($_GET['status']);
+			// Process the callback
+			yavin_process_payment_callback($orderID, $status);
+		}
+	}
+
+	function yavin_process_payment_callback($orderID, $status)
+	{
+
+
+		if (!$orderID) {
+			// If order ID is not found, handle the error
+			wp_die('Invalid order.');
+		}
+
+		$order = wc_get_order($orderID);
+
+		// Check the status from the callback URL
+		if ($status === 'ok') {
+			// Mark the order as completed
+			$order->payment_complete();
+			$order->reduce_order_stock();
+
+			// Clear the cart
+			WC()->cart->empty_cart();
+
+			// Redirect to the order received page
+			$order_received_url = $order->get_checkout_order_received_url();
+			wp_redirect($order_received_url);
+			exit;
+		} else {
+			// If status is not ok, mark the order as failed
+			$order->update_status('failed', __('Payment failed or cancelled', 'yavin-woocommerce-gateway'));
+
+			// Redirect to a custom error page (optional)
+			wp_redirect(site_url('/payment-failed'));
+			exit;
+		}
+	}
 } else {
 	// WooCommerce is not active, display a message or error
 	add_action('admin_notices', 'yavin_woocommerce_not_active');
