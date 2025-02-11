@@ -4,7 +4,7 @@
  * Plugin Name: Yavin WooCommerce Gateway
  * Description: Custom WooCommerce payment gateway integration with Yavin API
  * Version: 1.1
- * Author: Your Name
+ * Author: Yavin
  * Text Domain: yavin-woocommerce-gateway
  */
 
@@ -76,7 +76,7 @@ if (yavin_is_woocommerce_active()) {
 				$order->add_order_note($note);
 				$note = sprintf('Payment successfully completed via Yavin. Payment Link: %s', $tansactionDetails['response']['payment_link']);
 				$order->add_order_note($note);
-				$note = sprintf('Payment successfully completed via Yavin. Pan Detail: %s', $tansactionDetails['response']['pan']);
+				$note = sprintf('Payment successfully completed via Yavin. Pan Detail: %s', $tansactionDetails['response']['transactions'][0]['pan']);
 				$order->add_order_note($note);
 			}
 
@@ -87,9 +87,9 @@ if (yavin_is_woocommerce_active()) {
 		} else {
 			// If status is not ok, mark the order as failed
 			$order->update_status('failed', __('Payment failed or cancelled', 'yavin-woocommerce-gateway'));
-
+			WC()->cart->empty_cart();
 			// Redirect to a custom error page (optional)
-			wp_redirect(site_url('/payment-failed'));
+			wp_redirect(wc_get_checkout_url());
 			exit;
 		}
 	}
