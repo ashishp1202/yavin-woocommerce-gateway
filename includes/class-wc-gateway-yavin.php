@@ -90,8 +90,8 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 	// Call Yavin API (replace with actual implementation)
 	private function call_yavin_api($order)
 	{
-		$api_url = 'https://api.sandbox.yavin.com/api/v5/ecommerce/generate_link/';
-		$api_key = '8H3pMUetTnAIiqRtxxRZonAsSYdm1lavQXjFyAHEipbI516AP0'; // Replace with your actual Yavin API key
+		$api_url = YAVIN_API_URL . '/api/v5/ecommerce/generate_link/';
+		$api_key = YAVIN_API_KEY; // Replace with your actual Yavin API key
 		$data = array(
 			'cart_id' => $order->get_id(),
 			'amount' => intval($order->get_total()),
@@ -120,11 +120,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 
 		// Decode the response body (if it's a JSON response)
 		$decoded_response = json_decode($response_body, true);
-		/* echo "<pre>";
-		print_r($decoded_response);
-		echo "<pre>";
-		print_r($status_code);
-		exit(); */
+
 		// Return the decoded response along with the status code
 		return array(
 			'status_code' => $status_code,
