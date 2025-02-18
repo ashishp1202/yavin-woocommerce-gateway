@@ -92,6 +92,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 	{
 		$api_url = YAVIN_API_URL . '/api/v5/ecommerce/generate_link/';
 		$api_key = YAVIN_API_KEY; // Replace with your actual Yavin API key
+
 		$data = array(
 			'cart_id' => $order->get_id(),
 			'amount' => intval($order->get_total()),
@@ -100,6 +101,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 			'order_number' => $order->get_order_number(),
 			'currency' => get_woocommerce_currency(),
 		);
+		$this->yavinpayment_custom_logs($data);
 
 		// Make API request
 		$response = wp_remote_post($api_url, array(
@@ -110,7 +112,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 				'Yavin-Secret' => $api_key,
 			),
 		));
-
+		$this->yavinpayment_custom_logs($response);
 		// Get HTTP status code
 		$status_code = wp_remote_retrieve_response_code($response);
 
@@ -126,5 +128,24 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 			'status_code' => $status_code,
 			'response' => $decoded_response
 		);
+	}
+
+	public function yavinpayment_custom_logs($message)
+	{
+
+		if (is_array($message)) {
+			$message = json_encode($message);
+		}
+
+		$upload = wp_upload_dir();
+		$log_filename = $upload['basedir'] . "/yavinpayment-log";
+		if (!file_exists($log_filename)) {
+			mkdir($log_filename, 0777, true);
+		}
+
+		$log_file_data = $log_filename . '/yavinpayment-log-' . date('d-M-Y') . '.log';
+		file_put_contents($log_file_data, "==============================" . date("Y-m-d h:i:sa") . "==============================\n", FILE_APPEND);
+		file_put_contents($log_file_data, $message . "\n", FILE_APPEND);
+		file_put_contents($log_file_data, "==============================" . date("Y-m-d h:i:sa") . "==============================\n", FILE_APPEND);
 	}
 }

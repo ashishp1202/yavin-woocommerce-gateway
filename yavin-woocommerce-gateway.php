@@ -46,6 +46,8 @@ if (yavin_is_woocommerce_active()) {
 		if (isset($_GET['cartId']) && isset($_GET['status'])) {
 			$orderID = sanitize_text_field($_GET['cartId']);
 			$status  = sanitize_text_field($_GET['status']);
+			yavinpayment_custom_logs($orderID);
+			yavinpayment_custom_logs($status);
 			// Process the callback
 			yavin_process_payment_callback($orderID, $status);
 		}
@@ -113,7 +115,7 @@ if (yavin_is_woocommerce_active()) {
 
 		// Get the response body (the actual content returned by the API)
 		$response_body = wp_remote_retrieve_body($response);
-
+		yavinpayment_custom_logs($response_body);
 
 		// Decode the response body (if it's a JSON response)
 		$decoded_response = json_decode($response_body, true);
@@ -122,6 +124,24 @@ if (yavin_is_woocommerce_active()) {
 		return array(
 			'response' => $decoded_response
 		);
+	}
+	function yavinpayment_custom_logs($message)
+	{
+
+		if (is_array($message)) {
+			$message = json_encode($message);
+		}
+
+		$upload = wp_upload_dir();
+		$log_filename = $upload['basedir'] . "/yavinpayment-log";
+		if (!file_exists($log_filename)) {
+			mkdir($log_filename, 0777, true);
+		}
+
+		$log_file_data = $log_filename . '/yavinpayment-log-' . date('d-M-Y') . '.log';
+		file_put_contents($log_file_data, "==============================" . date("Y-m-d h:i:sa") . "==============================\n", FILE_APPEND);
+		file_put_contents($log_file_data, $message . "\n", FILE_APPEND);
+		file_put_contents($log_file_data, "==============================" . date("Y-m-d h:i:sa") . "==============================\n", FILE_APPEND);
 	}
 } else {
 	// WooCommerce is not active, display a message or error
