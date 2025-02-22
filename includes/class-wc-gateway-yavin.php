@@ -10,7 +10,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 	public function __construct()
 	{
 		$this->id = 'yavin';
-		$this->icon = ''; // You can add a custom icon here
+		$this->icon = $this->get_icon(); // You can add a custom icon here
 		$this->has_fields = false;
 		$this->method_title = 'Yavin Payment Gateway';
 		$this->method_description = 'Accept payments via Yavin API';
@@ -21,10 +21,26 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 		$this->title = $this->get_option('title');
 		$this->description = $this->get_option('description');
 		$this->enabled = $this->get_option('enabled');
+		$this->logos  = $this->get_option('logos');
+		$this->environment = $this->get_option('environment');
+		$this->liveapikey  = $this->get_option('liveapikey');
+		$this->liveapiurl  = $this->get_option('liveapiurl');
+		$this->sandboxapikey  = $this->get_option('sandboxapikey');
+		$this->sandboxapiurl  = $this->get_option('sandboxapiurl');
 
 		// Hook to save settings
 		add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
 	}
+
+	private function get_yavin_api_credentials()
+	{
+		$environment = $this->get_option('environment');
+		return array(
+			'yapi_key' => ($environment === 'live') ? $this->get_option('liveapikey') : $this->get_option('sandboxapikey'),
+			'yapi_url' => ($environment === 'live') ? $this->get_option('liveapiurl') : $this->get_option('sandboxapiurl'),
+		);
+	}
+
 
 	// Setup settings fields for the gateway
 	public function init_form_fields()
@@ -47,6 +63,48 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 				'type'        => 'textarea',
 				'description' => __('This controls the description of the gateway during checkout.', 'yavin-woocommerce-gateway'),
 				'default'     => 'Pay using Yavin'
+			),
+			'logos' => array(
+				'title'       => __('Yavin Payment Logos', 'yavin-woocommerce-gateway'),
+				'type'        => 'textarea',
+				'description' => __('Enter the URL of the payment logos (CB, Visa, Mastercard).', 'yavin-woocommerce-gateway'),
+				'default'     => '', // Default logo path
+				'css'         => 'width: 400px;',
+			),
+			'environment' => array(
+				'title'       => __('API Environment', 'woocommerce'),
+				'type'        => 'select',
+				'description' => __('Choose whether to use the Live or Sandbox API.', 'woocommerce'),
+				'default'     => 'sandbox',
+				'desc_tip'    => true,
+				'options'     => array(
+					'live'    => __('Live', 'woocommerce'),
+					'sandbox' => __('Sandbox', 'woocommerce')
+				)
+			),
+			'sandboxapikey' => array(
+				'title'       => __('Add Sandbox API Key', 'yavin-woocommerce-gateway'),
+				'type'        => 'text',
+				'description' => __('Enter the  Sandbox API key.', 'yavin-woocommerce-gateway'),
+				'default'     => '',
+			),
+			'sandboxapiurl' => array(
+				'title'       => __('Add Sandbox API URL', 'yavin-woocommerce-gateway'),
+				'type'        => 'text',
+				'description' => __('Enter Sandbox the API URL.', 'yavin-woocommerce-gateway'),
+				'default'     => '',
+			),
+			'liveapikey' => array(
+				'title'       => __('Add Live API Key', 'yavin-woocommerce-gateway'),
+				'type'        => 'text',
+				'description' => __('Enter the  Live API key.', 'yavin-woocommerce-gateway'),
+				'default'     => '',
+			),
+			'liveapiurl' => array(
+				'title'       => __('Add Live API URL', 'yavin-woocommerce-gateway'),
+				'type'        => 'text',
+				'description' => __('Enter Live the API URL.', 'yavin-woocommerce-gateway'),
+				'default'     => '',
 			),
 		);
 	}
@@ -90,8 +148,12 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 	// Call Yavin API (replace with actual implementation)
 	private function call_yavin_api($order)
 	{
-		$api_url = YAVIN_API_URL . '/api/v5/ecommerce/generate_link/';
-		$api_key = YAVIN_API_KEY; // Replace with your actual Yavin API key
+
+		// Fetch API credentials dynamically
+		$credentials = $this->get_yavin_api_credentials();
+		$api_key = $credentials['yapi_key'];
+		$yapi_url = $credentials['yapi_url'];
+		$api_url = $yapi_url . '/api/v5/ecommerce/generate_link/';
 
 		$data = array(
 			'cart_id' => $order->get_id(),
@@ -147,5 +209,26 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 		file_put_contents($log_file_data, "==============================" . date("Y-m-d h:i:sa") . "==============================\n", FILE_APPEND);
 		file_put_contents($log_file_data, $message . "\n", FILE_APPEND);
 		file_put_contents($log_file_data, "==============================" . date("Y-m-d h:i:sa") . "==============================\n", FILE_APPEND);
+	}
+
+	public function get_icon()
+	{
+		$logo_urls = $this->get_option('logos');
+		if (!empty($logo_urls)) {
+			$logos = explode("\n", $logo_urls); // Split URLs by new line
+			$logo_html = '';
+
+			foreach ($logos as $logo) {
+				$logo = trim($logo); // Remove spaces
+				if (!empty($logo)) {
+					$logo_html .= '<img src="' . esc_url($logo) . '" alt="Payment Logo" style="max-width: 50px; height: auto;" />';
+				}
+			}
+
+			$logo_html .= '';
+			return $logo_html;
+		}
+
+		return parent::get_icon();
 	}
 }

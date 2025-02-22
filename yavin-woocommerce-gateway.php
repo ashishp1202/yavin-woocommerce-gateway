@@ -11,8 +11,29 @@
 if (! defined('ABSPATH')) {
 	exit; // Exit if accessed directly
 }
-define('YAVIN_API_URL', 'https://api.sandbox.yavin.com');
-define('YAVIN_API_KEY', '8H3pMUetTnAIiqRtxxRZonAsSYdm1lavQXjFyAHEipbI516AP0');
+
+function get_yavin_api_credentials()
+{
+	$gateways = WC()->payment_gateways->payment_gateways();
+
+	if (isset($gateways['yavin'])) { // Ensure correct payment gateway ID
+		$gateway = $gateways['yavin'];
+		// Get the selected environment
+		$environment = $gateway->get_option('environment');
+		if ($environment === 'live') {
+			return array(
+				'yapi_key' => $gateway->get_option('liveapikey'),
+				'yapi_url' => $gateway->get_option('liveapiurl')
+			);
+		} else { // Default to sandbox if not live
+			return array(
+				'yapi_key' => $gateway->get_option('sandboxapikey'),
+				'yapi_url' => $gateway->get_option('sandboxapiurl')
+			);
+		}
+	}
+	return array('yapi_key' => '', 'yapi_url' => ''); // Return empty values if gateway not found
+}
 
 // Check if WooCommerce is active
 function yavin_is_woocommerce_active()
@@ -97,8 +118,10 @@ if (yavin_is_woocommerce_active()) {
 	}
 	function getYavinTansactionDetails($orderID)
 	{
-		$api_url = YAVIN_API_URL . '/api/v5/ecommerce/get_cart_information/';
-		$api_key = YAVIN_API_KEY; // Replace with your actual Yavin API key
+		$credentials = get_yavin_api_credentials();
+		$api_url = $credentials['yapi_url'];
+		$api_url = $api_url . '/api/v5/ecommerce/get_cart_information/';
+		$api_key = $credentials['yapi_key'];
 		$data = array(
 			'cart_id' => $orderID,
 		);
