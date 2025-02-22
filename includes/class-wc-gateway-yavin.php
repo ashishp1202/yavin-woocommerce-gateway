@@ -157,7 +157,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 
 		$data = array(
 			'cart_id' => $order->get_id(),
-			'amount' => intval($order->get_total()),
+			'amount' => intval($order->get_total() * 100),
 			'return_url_success' => wc_get_checkout_url(),
 			'return_url_cancelled' => wc_get_checkout_url(),
 			'order_number' => $order->get_order_number(),
