@@ -64,9 +64,12 @@ if (yavin_is_woocommerce_active()) {
 	// Register the custom endpoint
 	function yavin_payment_callback()
 	{
+
 		if (isset($_GET['cartId']) && isset($_GET['status'])) {
+
 			$orderID = sanitize_text_field($_GET['cartId']);
 			$status  = sanitize_text_field($_GET['status']);
+
 			yavinpayment_custom_logs($orderID);
 			yavinpayment_custom_logs($status);
 			// Process the callback
@@ -76,12 +79,15 @@ if (yavin_is_woocommerce_active()) {
 
 	function yavin_process_payment_callback($orderID, $status)
 	{
-		if (!$orderID) {
+
+		$orderKey = explode("-", $orderID);
+		$wooCommerceOrderID = $orderKey[1];
+		if (!$wooCommerceOrderID) {
 			// If order ID is not found, handle the error
 			wp_die('Invalid order.');
 		}
 
-		$order = wc_get_order($orderID);
+		$order = wc_get_order($wooCommerceOrderID);
 
 		// Check the status from the callback URL
 		if ($status === 'ok') {
@@ -110,7 +116,7 @@ if (yavin_is_woocommerce_active()) {
 		} else {
 			// If status is not ok, mark the order as failed
 			$order->update_status('failed', __('Payment failed or cancelled', 'yavin-woocommerce-gateway'));
-			WC()->cart->empty_cart();
+			//WC()->cart->empty_cart();
 			// Redirect to a custom error page (optional)
 			wp_redirect(wc_get_checkout_url());
 			exit;

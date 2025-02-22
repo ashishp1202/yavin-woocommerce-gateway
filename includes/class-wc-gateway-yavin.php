@@ -156,7 +156,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 		$api_url = $yapi_url . '/api/v5/ecommerce/generate_link/';
 
 		$data = array(
-			'cart_id' => $order->get_id(),
+			'cart_id' => bin2hex(random_bytes(8)) . "-" . $order->get_id(),
 			'amount' => intval($order->get_total() * 100),
 			'return_url_success' => wc_get_checkout_url(),
 			'return_url_cancelled' => wc_get_checkout_url(),
