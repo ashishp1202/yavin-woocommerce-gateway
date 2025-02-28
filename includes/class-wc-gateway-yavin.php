@@ -154,7 +154,29 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 		$api_key = $credentials['yapi_key'];
 		$yapi_url = $credentials['yapi_url'];
 		$api_url = $yapi_url . '/api/v5/ecommerce/generate_link/';
+		$items_data  =  array();
 
+		$args = array(
+			'status' => array('wc-processing', 'wc-completed'), // Accepts a string: one of 'pending', 'processing', 'on-hold', 'completed', 'refunded, 'failed', 'cancelled', or a custom order status.
+			'limit' => 1,
+			'meta_key'      => '_wcpdf_invoice_number', // Postmeta key field
+			'meta_value'    => '', // Postmeta value field
+			'meta_compare'  => '!=', // Possible values are ‘=’, ‘!=’, ‘>’, ‘>=’, ‘<‘, ‘<=’, ‘LIKE’, ‘NOT LIKE’, ‘IN’, ‘NOT IN’, ‘BETWEEN’, ‘NOT BETWEEN’, ‘EXISTS’ (only in WP >= 3.5), and ‘NOT EXISTS’ (also only in WP >= 3.5). Values ‘REGEXP’, ‘NOT REGEXP’ and ‘RLIKE’ were added in WordPress 3.7. Default value is ‘=’.
+			'return'        => 'ids' // Accepts a string: 'ids' or 'objects'. Default: 'objects'.
+		);
+
+		$lastOrder = wc_get_orders($args);
+		echo get_post_meta($lastOrder[0], '_wcpdf_invoice_number', true);
+		echo "<pre>";
+		print_r($lastOrder);
+		exit();
+		foreach ($order->get_items() as $item_id => $item) {
+			array_push($items_data, array(
+				'name' => $item->get_name(),
+				'total_amount' => $item->get_total(),
+				'quantity' => $item->get_quantity(),
+			));
+		}
 		$data = array(
 			'cart_id' => bin2hex(random_bytes(8)) . "-" . $order->get_id(),
 			'amount' => intval($order->get_total() * 100),
@@ -162,7 +184,28 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 			'return_url_cancelled' => wc_get_checkout_url(),
 			'order_number' => $order->get_order_number(),
 			'currency' => get_woocommerce_currency(),
+			'reference' => '',
+			'vendor' => array(
+				'software_name' => 'Yavin WooCommerce Gateway',
+				'software_version' => '1.1'
+			),
+			'customer' => array(
+				'first_name' => $order->get_billing_first_name(),
+				'last_name' => $order->get_billing_last_name(),
+				'email' => $order->get_billing_email(),
+				'telephone' => $order->get_billing_phone(),
+				'address' => $order->get_billing_address_1(),
+				'city' => $order->get_billing_city(),
+				'postcode' => $order->get_billing_postcode(),
+			),
+			'items' => $items_data,
 		);
+		echo "<pre>";
+		print_r($order->get_items());
+		//exit();
+		echo "<pre>";
+		print_r($data);
+		exit();
 		$this->yavinpayment_custom_logs($data);
 
 		// Make API request
