@@ -166,14 +166,15 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 		);
 
 		$lastOrder = wc_get_orders($args);
-		echo get_post_meta($lastOrder[0], '_wcpdf_invoice_number', true);
-		echo "<pre>";
-		print_r($lastOrder);
-		exit();
+		if ($lastOrder[0]) {
+			$last_invoice_number = get_post_meta($lastOrder[0], '_wcpdf_invoice_number', true);
+		}
+
+		$last_invoice_number = explode('-', $last_invoice_number);
 		foreach ($order->get_items() as $item_id => $item) {
 			array_push($items_data, array(
 				'name' => $item->get_name(),
-				'total_amount' => $item->get_total(),
+				'total_amount' => intval($item->get_total() * 100),
 				'quantity' => $item->get_quantity(),
 			));
 		}
@@ -184,8 +185,9 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 			'return_url_cancelled' => wc_get_checkout_url(),
 			'order_number' => $order->get_order_number(),
 			'currency' => get_woocommerce_currency(),
-			'reference' => '',
+			'reference' => 'FWC-' . date('Y') . '-' . date('m') . '-' . $last_invoice_number[3] + 1,
 			'vendor' => array(
+				'brand_name' => 'Yavin',
 				'software_name' => 'Yavin WooCommerce Gateway',
 				'software_version' => '1.1'
 			),
@@ -200,12 +202,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 			),
 			'items' => $items_data,
 		);
-		echo "<pre>";
-		print_r($order->get_items());
-		//exit();
-		echo "<pre>";
-		print_r($data);
-		exit();
+
 		$this->yavinpayment_custom_logs($data);
 
 		// Make API request
@@ -221,6 +218,9 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 		// Get HTTP status code
 		$status_code = wp_remote_retrieve_response_code($response);
 
+		echo "<pre>";
+		print_r($response);
+		exit();
 		// Get the response body (the actual content returned by the API)
 		$response_body = wp_remote_retrieve_body($response);
 
