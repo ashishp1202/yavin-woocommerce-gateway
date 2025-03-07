@@ -156,7 +156,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 		$api_url = $yapi_url . '/api/v5/ecommerce/generate_link/';
 		$items_data  =  array();
 
-		$args = array(
+		/*$args = array(
 			'status' => array('wc-processing', 'wc-completed'), // Accepts a string: one of 'pending', 'processing', 'on-hold', 'completed', 'refunded, 'failed', 'cancelled', or a custom order status.
 			'limit' => 1,
 			'meta_key'      => '_wcpdf_invoice_number', // Postmeta key field
@@ -170,7 +170,8 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 			$last_invoice_number = get_post_meta($lastOrder[0], '_wcpdf_invoice_number', true);
 		}
 
-		$last_invoice_number = explode('-', $last_invoice_number);
+		$last_invoice_number = explode('-', $last_invoice_number);*/
+
 		foreach ($order->get_items() as $item_id => $item) {
 			array_push($items_data, array(
 				'name' => $item->get_name(),
@@ -185,7 +186,8 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 			'return_url_cancelled' => wc_get_checkout_url(),
 			'order_number' => $order->get_order_number(),
 			'currency' => get_woocommerce_currency(),
-			'reference' => 'FWC-' . date('Y') . '-' . date('m') . '-' . $last_invoice_number[3] + 1,
+			//'reference' => 'FWC-' . date('Y') . '-' . date('m') . '-' . $last_invoice_number[3] + 1,
+			'reference' => $order->get_order_number(),
 			'vendor' => array(
 				'brand_name' => 'Yavin',
 				'software_name' => 'Yavin WooCommerce Gateway',
@@ -218,9 +220,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 		// Get HTTP status code
 		$status_code = wp_remote_retrieve_response_code($response);
 
-		echo "<pre>";
-		print_r($response);
-		exit();
+
 		// Get the response body (the actual content returned by the API)
 		$response_body = wp_remote_retrieve_body($response);
 
