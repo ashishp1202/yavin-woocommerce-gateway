@@ -115,8 +115,11 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 
 		$order = wc_get_order($order_id);
 
+		// Define the Webhook URL for Yavin to send updates
+		$webhook_url = esc_url(home_url('/wp-json/yavin/v1/webhook/'));  // Set the URL where Yavin will send updates
+
 		// Call Yavin API to generate the payment link
-		$api_result = $this->call_yavin_api($order);
+		$api_result = $this->call_yavin_api($order, $webhook_url);
 		$status_code = $api_result['status_code'];
 		$response = $api_result['response'];
 		if ($status_code === 201) {
@@ -146,7 +149,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 	}
 
 	// Call Yavin API (replace with actual implementation)
-	private function call_yavin_api($order)
+	private function call_yavin_api($order, $webhook_url)
 	{
 
 		// Fetch API credentials dynamically
@@ -184,6 +187,7 @@ class WC_Gateway_Yavin extends WC_Payment_Gateway
 			'amount' => intval($order->get_total() * 100),
 			'return_url_success' => wc_get_checkout_url(),
 			'return_url_cancelled' => wc_get_checkout_url(),
+			'webhook_url' => $webhook_url, // Pass the webhook_url parameter to Yavin
 			'order_number' => $order->get_order_number(),
 			'currency' => get_woocommerce_currency(),
 			//'reference' => 'FWC-' . date('Y') . '-' . date('m') . '-' . $last_invoice_number[3] + 1,

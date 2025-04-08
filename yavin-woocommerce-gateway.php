@@ -42,6 +42,7 @@ function yavin_is_woocommerce_active()
 }
 
 if (yavin_is_woocommerce_active()) {
+	flush_rewrite_rules();
 	add_action('plugins_loaded', 'yavin_woocommerce_gateway_init', 11);
 	add_action('init', 'yavin_payment_callback');
 
@@ -171,6 +172,93 @@ if (yavin_is_woocommerce_active()) {
 		file_put_contents($log_file_data, "==============================" . date("Y-m-d h:i:sa") . "==============================\n", FILE_APPEND);
 		file_put_contents($log_file_data, $message . "\n", FILE_APPEND);
 		file_put_contents($log_file_data, "==============================" . date("Y-m-d h:i:sa") . "==============================\n", FILE_APPEND);
+	}
+
+	add_action('rest_api_init', 'register_yavin_webhook_endpoint');
+
+	function register_yavin_webhook_endpoint()
+	{
+		register_rest_route('yavin/v1', '/webhook/', array(
+			'methods' => 'POST',
+			'callback' => 'handle_yavin_webhook_request',
+			'permission_callback' => '__return_true', // No authentication required
+		));
+	}
+
+
+	function handle_yavin_webhook_request($data)
+	{
+		// Get the incoming data from Yavin
+		$body = $data->get_body();
+		$json_data = json_decode($body, true);
+
+		// Log the data for debugging
+		yavinpayment_custom_logs("handle_yavin_webhook_request");
+		yavinpayment_custom_logs("json_data" . json_encode($json_data));
+		yavinpayment_custom_logs("POST" . json_encode($_POST));
+
+		// Ensure required parameters are present
+		if (isset($json_data['cart_id']) && isset($json_data['status'])) {
+			$cart_id = sanitize_text_field($json_data['cart_id']);
+			$status = sanitize_text_field($json_data['status']);
+
+			$orderKey = explode("-", $cart_id);
+			$wooCommerceOrderID = $orderKey[1];
+			if (!$wooCommerceOrderID) {
+				// If order ID is not found, handle the error
+				wp_die('Invalid order.');
+			}
+
+			yavinpayment_custom_logs("handle_yavin_webhook_request" . $wooCommerceOrderID);
+			$order = wc_get_order($wooCommerceOrderID);
+
+			if ($order) {
+				// Update order status based on Yavin's status
+				if ($status === 'ok') {
+					$order->payment_complete(); // Mark the order as completed
+					$order->add_order_note('Payment confirmed via Yavin.');
+				} else {
+					$order->update_status('failed', 'Payment failed via Yavin.'); // Mark as failed
+				}
+
+				// Save order status and return a response
+				$order->save();
+				return new WP_REST_Response('Success', 200);
+			} else {
+				// If no order found, log the issue
+				error_log('Order not found for cartId: ' . $cart_id);
+
+				// Return error response
+				return new WP_REST_Response('Order not found', 400);
+			}
+		} else {
+			// Log the issue if cartId or status is missing
+			error_log('Missing cartId or status in webhook request');
+
+			// Return error response for missing data
+			return new WP_REST_Response('Missing cartId or status', 400);
+		}
+	}
+
+
+	// Get order by cart ID (used to map Yavin cart ID to WooCommerce order)
+	function get_order_by_cart_id($cart_id)
+	{
+		$args = array(
+			'post_type'   => 'shop_order',
+			'meta_key'    => '_cart_id', // Assuming cart ID is stored as metadata
+			'meta_value'  => $cart_id,
+			'posts_per_page' => 1,
+			'post_status' => array('wc-pending', 'wc-processing', 'wc-completed', 'wc-failed'),
+		);
+
+		$orders = get_posts($args);
+
+		if (! empty($orders)) {
+			return wc_get_order($orders[0]->ID);
+		}
+
+		return null;
 	}
 } else {
 	// WooCommerce is not active, display a message or error
