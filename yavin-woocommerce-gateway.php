@@ -195,7 +195,6 @@ if (yavin_is_woocommerce_active()) {
 		// Log the data for debugging
 		yavinpayment_custom_logs("handle_yavin_webhook_request");
 		yavinpayment_custom_logs("json_data" . json_encode($json_data));
-		yavinpayment_custom_logs("POST" . json_encode($_POST));
 
 		// Ensure required parameters are present
 		if (isset($json_data['cart_id']) && isset($json_data['status'])) {
@@ -216,9 +215,12 @@ if (yavin_is_woocommerce_active()) {
 				// Update order status based on Yavin's status
 				if ($status === 'ok') {
 					$order->payment_complete(); // Mark the order as completed
-					$order->add_order_note('Payment confirmed via Yavin.');
+					$order->add_order_note('Payment confirmed via Yavin Webook.');
+					$order->add_order_note('Payment successfully completed via Yavin Webhook. Payment Link: ' . $json_data['payment_link']);
+					$order->add_order_note('Payment successfully completed via Yavin Webhook. Transaction ID: ' . $json_data['transactions'][0]['transaction_id']);
+					$order->add_order_note('Payment successfully completed via Yavin Webhook. Transaction ID: ' . $json_data['transactions'][0]['pan']);
 				} else {
-					$order->update_status('failed', 'Payment failed via Yavin.'); // Mark as failed
+					$order->update_status('failed', 'Payment failed via Yavin Webook.'); // Mark as failed
 				}
 
 				// Save order status and return a response
