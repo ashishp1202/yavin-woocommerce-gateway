@@ -92,15 +92,16 @@ if (yavin_is_woocommerce_active()) {
 
 		// Check the status from the callback URL
 		if ($status === 'ok') {
-			// Mark the order as completed
-			$order->payment_complete();
+
+			/* // Mark the order as completed
+			//$order->payment_complete();
 			$order->reduce_order_stock();
 
 			// Clear the cart
-			WC()->cart->empty_cart();
+			WC()->cart->empty_cart(); */
 
 
-			$tansactionDetails = getYavinTansactionDetails($orderID);
+			/* $tansactionDetails = getYavinTansactionDetails($orderID);
 			if ($tansactionDetails['response']['status'] === 'ok' && !empty($tansactionDetails['response']['transactions'][0]['transaction_id'])) {
 				$note = sprintf('Payment successfully completed via Yavin. Transaction ID: %s', $tansactionDetails['response']['transactions'][0]['transaction_id']);
 				$order->add_order_note($note);
@@ -108,15 +109,17 @@ if (yavin_is_woocommerce_active()) {
 				$order->add_order_note($note);
 				$note = sprintf('Payment successfully completed via Yavin. Pan Detail: %s', $tansactionDetails['response']['transactions'][0]['pan']);
 				$order->add_order_note($note);
-			}
+			} */
 
 			// Redirect to the order received page
 			$order_received_url = $order->get_checkout_order_received_url();
 			wp_redirect($order_received_url);
+
 			exit;
 		} else {
+
 			// If status is not ok, mark the order as failed
-			$order->update_status('failed', __('Payment failed or cancelled', 'yavin-woocommerce-gateway'));
+			//$order->update_status('failed', __('Payment failed or cancelled', 'yavin-woocommerce-gateway'));
 			//WC()->cart->empty_cart();
 			// Redirect to a custom error page (optional)
 			wp_redirect(wc_get_checkout_url());
@@ -213,8 +216,9 @@ if (yavin_is_woocommerce_active()) {
 
 			if ($order) {
 				// Update order status based on Yavin's status
-				if ($status === 'ok') {
+				if ($status === 'ok' && $order->has_status(array('pending', 'failed'))) {
 					$order->payment_complete(); // Mark the order as completed
+					$order->reduce_order_stock();
 					$order->add_order_note('Payment confirmed via Yavin Webook.');
 					$order->add_order_note('Payment successfully completed via Yavin Webhook. Payment Link: ' . $json_data['payment_link']);
 					$order->add_order_note('Payment successfully completed via Yavin Webhook. Transaction ID: ' . $json_data['transactions'][0]['transaction_id']);
